@@ -1,0 +1,713 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>CompraTrilhe</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Mono:wght@400;500&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Conceito: a página é um mapa de trilha. Curvas de nível ao fundo, marcos (sinalização de trilha) em âmbar,
+   e um perfil de elevação que mostra o desconto crescendo conforme o grupo anda junto. */
+:root{
+  --bg:#F1F4F0;
+  --surface:#FFFFFF;
+  --fg:#14231F;
+  --muted:#52645C;
+  --line:#D5DDD7;
+  --line-strong:#B2C1B8;
+  --trail:#0F6B5A;
+  --on-trail:#FFFFFF;
+  --blaze:#FFB81C;
+  --on-blaze:#14231F;
+  --band:#0F3D34;
+  --band-fg:#EAF5F0;
+  --band-muted:#A9C7BC;
+  --contour:rgba(15,107,90,.17);
+  --contour-strong:rgba(15,107,90,.30);
+  --band-contour:rgba(255,255,255,.09);
+  --danger:#B42318;
+  --shadow:0 1px 2px rgba(20,35,31,.06),0 18px 40px -18px rgba(20,35,31,.28);
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'DM Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1815;
+    --surface:#13241F;
+    --fg:#E6EFEA;
+    --muted:#9FB4AB;
+    --line:#243A32;
+    --line-strong:#365247;
+    --trail:#5FD4B4;
+    --on-trail:#06201A;
+    --blaze:#FFC53D;
+    --on-blaze:#1A1405;
+    --band:#12362E;
+    --band-fg:#EAF5F0;
+    --band-muted:#A9C7BC;
+    --contour:rgba(95,212,180,.16);
+    --contour-strong:rgba(95,212,180,.30);
+    --band-contour:rgba(255,255,255,.08);
+    --danger:#FF8A7A;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 18px 40px -18px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C1815;
+  --surface:#13241F;
+  --fg:#E6EFEA;
+  --muted:#9FB4AB;
+  --line:#243A32;
+  --line-strong:#365247;
+  --trail:#5FD4B4;
+  --on-trail:#06201A;
+  --blaze:#FFC53D;
+  --on-blaze:#1A1405;
+  --band:#12362E;
+  --band-fg:#EAF5F0;
+  --band-muted:#A9C7BC;
+  --contour:rgba(95,212,180,.16);
+  --contour-strong:rgba(95,212,180,.30);
+  --band-contour:rgba(255,255,255,.08);
+  --danger:#FF8A7A;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 18px 40px -18px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:1.0625rem;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,p,ol,ul,figure,blockquote{margin:0}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--trail);outline-offset:3px}
+
+.wrap{
+  width:100%;max-width:1200px;margin-inline:auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.sec{padding-block:clamp(56px,9vw,104px)}
+section[id]{scroll-margin-top:12px}
+
+/* tipografia */
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:var(--f-mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.eyebrow::before{content:"";width:9px;height:16px;border-radius:2px;background:var(--blaze);flex:none}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(2.45rem,6.2vw,4.6rem);line-height:1.02;letter-spacing:-.028em;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:650;font-size:clamp(1.8rem,3.6vw,2.7rem);line-height:1.08;letter-spacing:-.02em;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:1.25rem;line-height:1.2;letter-spacing:-.01em}
+.trilha-word{color:var(--trail);text-decoration:underline dashed;text-decoration-color:var(--blaze);text-decoration-thickness:.075em;text-underline-offset:.13em}
+.lead{font-size:1.15rem;color:var(--muted);max-width:46ch}
+.sec-head{display:grid;gap:14px;max-width:680px;margin-bottom:clamp(28px,5vw,48px);justify-items:start}
+.sec-head p{color:var(--muted);max-width:56ch}
+.mono-label{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+/* botões */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 22px;border-radius:10px;border:1.5px solid transparent;font-weight:600;font-size:1rem;line-height:1;text-decoration:none;cursor:pointer;transition:transform .15s ease,background-color .15s ease,border-color .15s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn-primary{background:var(--trail);color:var(--on-trail)}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{background:transparent;color:var(--fg);border-color:var(--line-strong)}
+.btn-ghost:hover{border-color:var(--fg)}
+.btn-sm{min-height:40px;padding:0 16px;font-size:.92rem}
+
+/* hero */
+.hero{position:relative;overflow:hidden}
+.hero .wrap{position:relative}
+.contours{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;-webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent 100%);mask-image:linear-gradient(to bottom,#000 55%,transparent 100%)}
+.ct{fill:none;stroke:var(--contour);stroke-width:1;vector-effect:non-scaling-stroke}
+.ct-major{stroke:var(--contour-strong);stroke-width:1.5}
+.band .ct,.band .ct-major{stroke:var(--band-contour)}
+.band .ct-major{stroke-width:1.4}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:22px}
+.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none}
+.logo{width:34px;height:34px;flex:none}
+.logo-bg{fill:var(--trail)}
+.logo-path{fill:none;stroke:var(--on-trail);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.logo-dot{fill:var(--blaze)}
+.wordmark{font-family:var(--f-display);font-size:1.4rem;font-weight:500;letter-spacing:-.02em}
+.wordmark b{font-weight:800;color:var(--trail)}
+.nav{display:flex;align-items:center;gap:clamp(16px,3vw,32px);font-size:.95rem;font-weight:500}
+.nav a:not(.btn){text-decoration:none;color:var(--muted)}
+.nav a:not(.btn):hover{color:var(--fg)}
+
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);gap:clamp(28px,5vw,64px);align-items:center;padding-block:clamp(24px,5vw,56px) clamp(48px,8vw,96px)}
+.hero-copy{display:grid;gap:22px;justify-items:start}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+
+/* simulador */
+.sim{background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:clamp(18px,3vw,28px);display:grid;gap:18px;min-width:0}
+.sim-head{display:grid;gap:4px}
+.sim-head h2{font-size:1.5rem}
+.solo{color:var(--muted);font-size:.95rem}
+.solo span{font-variant-numeric:tabular-nums}
+.slider{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:6px 12px}
+.slider label{font-weight:600;font-size:.95rem}
+.slider output{font-family:var(--f-display);font-weight:700;font-size:1.7rem;line-height:1;font-variant-numeric:tabular-nums}
+.slider input{grid-column:1/-1;width:100%;height:28px;margin:0;accent-color:var(--trail);cursor:pointer}
+.chart{width:100%;min-width:0;overflow:hidden}
+.chart svg{display:block;width:100%;height:auto}
+.g-line{stroke:var(--line);stroke-width:1}
+.g-tick{stroke:var(--line-strong);stroke-width:1}
+.t-axis{font:400 11px var(--f-mono);fill:var(--muted)}
+.t-lbl{font:500 12px var(--f-mono);fill:var(--fg)}
+.p-area{fill:var(--trail);fill-opacity:.16}
+.p-rest{fill:none;stroke:var(--line-strong);stroke-width:2.5;stroke-dasharray:5 6;stroke-linejoin:round}
+.p-done{fill:none;stroke:var(--trail);stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round}
+.mark{fill:var(--surface);stroke:var(--trail);stroke-width:2}
+.mark.reached{fill:var(--blaze);stroke:var(--blaze)}
+.cursor{stroke:var(--fg);stroke-width:1.5;stroke-dasharray:3 4;opacity:.55}
+.dot-halo{fill:var(--blaze);fill-opacity:.28}
+.dot-core{fill:var(--blaze);stroke:var(--surface);stroke-width:3}
+.next{font-size:.95rem;color:var(--muted)}
+.next strong{color:var(--fg);font-weight:600}
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+.res{display:grid;gap:2px;padding:12px 14px;border-radius:10px;background:var(--bg);min-width:0}
+.res .mono-label{font-size:.66rem}
+.res strong{font-family:var(--f-display);font-weight:650;font-size:1.3rem;line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.res.main strong{color:var(--trail)}
+.fine{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+
+/* como funciona */
+.steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px}
+.step{position:relative;padding-top:54px;display:grid;gap:8px;align-content:start}
+.step::before{content:"";position:absolute;top:14px;left:0;right:-28px;border-top:2px dashed var(--line-strong)}
+.step:last-child::before{display:none}
+.blaze{position:absolute;top:0;left:0;width:22px;height:28px;border-radius:4px;background:var(--blaze);color:var(--on-blaze);display:grid;place-items:center;font:500 .78rem var(--f-mono)}
+.step p{color:var(--muted);font-size:.98rem}
+
+/* trilhas abertas */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.fbtn{min-height:40px;padding:0 16px;border-radius:999px;border:1.5px solid var(--line-strong);background:transparent;font-weight:500;font-size:.92rem;cursor:pointer}
+.fbtn:hover{border-color:var(--fg)}
+.fbtn[aria-pressed="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:16px}
+.tcard{display:flex;flex-direction:column;gap:14px;padding:20px;border:1px solid var(--line);background:var(--surface);border-radius:12px;min-width:0}
+.tc-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.tag{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--trail)}
+.days{font-family:var(--f-mono);font-size:.78rem;color:var(--muted)}
+.days.urgent{color:var(--fg);background:var(--blaze);color:var(--on-blaze);padding:2px 8px;border-radius:4px}
+.tcard h3{min-height:2.4em}
+.price{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px}
+.price strong{font-family:var(--f-display);font-weight:700;font-size:1.7rem;line-height:1;font-variant-numeric:tabular-nums}
+.price s{color:var(--muted);font-size:.95rem;font-variant-numeric:tabular-nums}
+.price .off{font-family:var(--f-mono);font-size:.78rem;color:var(--trail);font-weight:500}
+.meter{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--trail);border-radius:99px}
+.meter-label{display:flex;justify-content:space-between;gap:12px;font-size:.88rem;color:var(--muted);margin-top:-6px;font-variant-numeric:tabular-nums}
+.tcard .btn{margin-top:auto;width:100%}
+.tcard .btn[aria-pressed="true"]{background:transparent;color:var(--trail);border-color:var(--trail)}
+
+/* marca */
+.brand-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(32px,5vw,72px);align-items:start}
+.dict{display:grid;gap:28px}
+.entry{display:grid;gap:4px;justify-items:start}
+.entry .word{font-family:var(--f-display);font-weight:650;font-size:clamp(2rem,4vw,2.8rem);line-height:1;letter-spacing:-.02em}
+.entry .word span{color:var(--blaze)}
+.entry .gram{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.entry .def{max-width:44ch;color:var(--muted)}
+.entry .def b{color:var(--fg);font-weight:600}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:clamp(22px,4vw,36px);min-height:230px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-width:0}
+.stage h3{font-size:clamp(1.8rem,3.6vw,2.7rem);line-height:1.08;font-weight:650;letter-spacing:-.02em;text-wrap:balance}
+.stage-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.slist{display:grid;gap:8px;margin-top:14px}
+.slg{display:flex;align-items:baseline;gap:12px;text-align:left;width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:transparent;cursor:pointer;min-width:0}
+.slg:hover{border-color:var(--line-strong)}
+.slg[aria-pressed="true"]{border-color:var(--trail);background:var(--surface)}
+.slg .txt{flex:1;min-width:0;font-weight:500}
+.slg .use{font-family:var(--f-mono);font-size:.7rem;color:var(--muted);text-align:right}
+.traits{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:32px;margin-top:clamp(48px,7vw,80px)}
+.trait{display:grid;gap:10px;align-content:start}
+.trait svg{width:44px;height:44px;fill:none;stroke:var(--trail);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.trait svg .acc{fill:var(--blaze);stroke:none}
+.trait p{color:var(--muted);font-size:.98rem}
+
+/* faixa da ideia central */
+.band{position:relative;overflow:hidden;background:var(--band);color:var(--band-fg)}
+.band .contours{-webkit-mask-image:none;mask-image:none}
+.band .wrap{position:relative;display:grid;gap:26px;justify-items:start}
+.band .eyebrow{color:var(--band-muted)}
+.band blockquote{font-family:var(--f-display);font-weight:600;font-size:clamp(1.7rem,3.8vw,3rem);line-height:1.15;letter-spacing:-.02em;max-width:26ch;text-wrap:balance}
+.band p{color:var(--band-muted);max-width:56ch;font-size:1.1rem}
+
+/* chamada final */
+.cta-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(28px,5vw,64px);align-items:center}
+.cta-grid .sec-head{margin-bottom:0}
+.form{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:clamp(20px,3vw,28px);display:grid;gap:16px;box-shadow:var(--shadow)}
+.field{display:grid;gap:6px}
+.field label{font-weight:600;font-size:.92rem}
+.field input,.field select{min-height:48px;border-radius:10px;border:1.5px solid var(--line-strong);background:var(--bg);padding:0 14px;width:100%}
+.field input[aria-invalid="true"]{border-color:var(--danger)}
+.msg{min-height:1.4em;font-size:.95rem}
+.msg.err{color:var(--danger)}
+.msg.ok{color:var(--trail);font-weight:500}
+
+footer{border-top:1px solid var(--line);padding-block:32px}
+.foot{display:flex;flex-wrap:wrap;gap:16px 32px;justify-content:space-between;align-items:center}
+.foot p{color:var(--muted);font-size:.9rem;max-width:60ch}
+
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:10px;font-size:.95rem;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;max-width:calc(100% - 32px);z-index:20}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:900px){
+  .hero-grid,.brand-grid,.cta-grid{grid-template-columns:minmax(0,1fr)}
+  .steps{grid-template-columns:minmax(0,1fr);gap:0}
+  .step{padding:0 0 32px 52px}
+  .step::before{top:34px;bottom:-4px;left:10px;right:auto;border-top:0;border-left:2px dashed var(--line-strong)}
+}
+@media (max-width:760px){
+  .nav a:not(.btn){display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+
+<section class="hero" id="topo">
+  <svg class="contours" id="hero-contours" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="#topo" aria-label="CompraTrilhe, início">
+        <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="9" class="logo-bg"/>
+          <path d="M7 23 L13 15 L18 19 L24 9" class="logo-path"/>
+          <circle cx="24" cy="9" r="3.2" class="logo-dot"/>
+        </svg>
+        <span class="wordmark">Compra<b>Trilhe</b></span>
+      </a>
+      <nav class="nav" aria-label="Principal">
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#trilhas">Trilhas abertas</a>
+        <a href="#marca">A marca</a>
+        <a class="btn btn-primary btn-sm" href="#entrar">Abrir uma trilha</a>
+      </nav>
+    </header>
+
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow">Consumo colaborativo</span>
+        <h1>Juntos, a gente <span class="trilha-word">trilha</span> melhores compras.</h1>
+        <p class="lead">O CompraTrilhe reúne pessoas com interesses em comum para comprar juntas. Quanto maior o grupo, mais perto ele fica do próximo marco de desconto.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#entrar">Abrir uma trilha</a>
+          <a class="btn btn-ghost" href="#como-funciona">Ver como funciona</a>
+        </div>
+      </div>
+
+      <div class="sim" aria-labelledby="sim-title">
+        <div class="sim-head">
+          <p class="mono-label">Trilha de exemplo</p>
+          <h2 id="sim-title">Air fryer 5 L</h2>
+          <p class="solo">Comprando sozinho: <span>R$&nbsp;449,00</span></p>
+        </div>
+        <div class="slider">
+          <label for="pessoas">Pessoas na trilha</label>
+          <output id="pessoas-out" for="pessoas">18 pessoas</output>
+          <input id="pessoas" type="range" min="1" max="50" step="1" value="18">
+        </div>
+        <div class="chart" id="chart" role="group" aria-label="Perfil da trilha: desconto conforme o tamanho do grupo"></div>
+        <p class="next" id="next" aria-live="polite">Faltam <strong>2 pessoas</strong> para o marco de <strong>15%</strong>.</p>
+        <div class="results" aria-live="polite">
+          <div class="res main"><span class="mono-label">Seu preço</span><strong id="r-price">R$&nbsp;413,08</strong></div>
+          <div class="res"><span class="mono-label">Você economiza</span><strong id="r-save">R$&nbsp;35,92</strong></div>
+          <div class="res"><span class="mono-label">Economia do grupo</span><strong id="r-group">R$&nbsp;646,56</strong></div>
+        </div>
+        <p class="fine">Valores de exemplo. Arraste para andar pela trilha.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main>
+  <section class="sec" id="como-funciona" aria-labelledby="t-como">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">Como funciona</span>
+        <h2 id="t-como">Quatro passos, um caminho</h2>
+        <p>Cada compra coletiva é uma trilha com marcos visíveis desde o começo. Todo mundo sabe onde o grupo está e quanto falta para chegar mais longe.</p>
+      </div>
+      <ol class="steps">
+        <li class="step"><span class="blaze" aria-hidden="true">1</span><h3>Escolha uma trilha</h3><p>Encontre um produto que outras pessoas também querem ou abra a sua e gere um convite.</p></li>
+        <li class="step"><span class="blaze" aria-hidden="true">2</span><h3>Chame quem anda junto</h3><p>Compartilhe com amigos, vizinhos e colegas. Cada pessoa que entra aproxima o grupo do próximo marco.</p></li>
+        <li class="step"><span class="blaze" aria-hidden="true">3</span><h3>Alcance os marcos</h3><p>Quanto maior o grupo, maior o desconto. Os patamares ficam à mostra no perfil da trilha.</p></li>
+        <li class="step"><span class="blaze" aria-hidden="true">4</span><h3>Compre com vantagem</h3><p>Ao fechar a trilha, todos pagam o preço do último marco alcançado.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec" id="trilhas" aria-labelledby="t-trilhas" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">Trilhas abertas</span>
+        <h2 id="t-trilhas">Grupos que estão andando agora</h2>
+        <p>Produtos e grupos de exemplo para o protótipo. Entre em uma trilha e veja o grupo crescer.</p>
+      </div>
+      <div class="filters" id="filters" role="group" aria-label="Filtrar por categoria"></div>
+      <div class="tgrid" id="tgrid"></div>
+    </div>
+  </section>
+
+  <section class="sec" id="marca" aria-labelledby="t-marca" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">A marca</span>
+        <h2 id="t-marca">Um nome que é um convite</h2>
+        <p>CompraTrilhe junta o ato de comprar com a ideia de abrir caminho em grupo. A sonoridade ainda lembra compartilhe.</p>
+      </div>
+
+      <div class="brand-grid">
+        <div class="dict">
+          <div class="entry">
+            <span class="word">com<span>·</span>pra</span>
+            <span class="gram">substantivo</span>
+            <p class="def">O ato de consumir, adquirir produtos e acessar oportunidades.</p>
+          </div>
+          <div class="entry">
+            <span class="word">tri<span>·</span>lhe</span>
+            <span class="gram">verbo, imperativo de trilhar</span>
+            <p class="def">Percorrer caminhos, construir trajetórias e <b>avançar coletivamente</b>.</p>
+          </div>
+          <div class="entry">
+            <span class="word">com<span>·</span>par<span>·</span>ti<span>·</span>lhe</span>
+            <span class="gram">soa como</span>
+            <p class="def">Dividir experiências, oportunidades e benefícios. A palavra que o nome evoca.</p>
+          </div>
+        </div>
+
+        <div>
+          <div class="stage">
+            <span class="mono-label">Slogan em destaque</span>
+            <h3 id="slogan-view" aria-live="polite">Juntos, a gente trilha melhores compras.</h3>
+            <div class="stage-foot">
+              <span class="wordmark" style="font-size:1.1rem">Compra<b>Trilhe</b></span>
+              <span class="mono-label" id="slogan-use">Slogan principal</span>
+            </div>
+          </div>
+          <div class="slist" id="slist" role="group" aria-label="Opções de slogan"></div>
+        </div>
+      </div>
+
+      <div class="traits">
+        <div class="trait">
+          <svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="16" cy="25" r="8"/><circle cx="28" cy="25" r="8"/><circle cx="22" cy="14" r="8"/><circle class="acc" cx="22" cy="22" r="2.6"/></svg>
+          <h3>Colaborativa</h3>
+          <p>Acredita na força do coletivo. Ninguém precisa dar o primeiro passo sozinho.</p>
+        </div>
+        <div class="trait">
+          <svg viewBox="0 0 44 44" aria-hidden="true"><path d="M6 36 H38 V10 Z"/><circle class="acc" cx="38" cy="10" r="3.2"/></svg>
+          <h3>Acessível</h3>
+          <p>Busca democratizar oportunidades de consumo, com rampa suave e sem letra miúda.</p>
+        </div>
+        <div class="trait">
+          <svg viewBox="0 0 44 44" aria-hidden="true"><path d="M11 32 L22 12 L34 29 Z"/><circle cx="11" cy="32" r="4" fill="var(--bg)"/><circle cx="22" cy="12" r="4" fill="var(--bg)"/><circle class="acc" cx="34" cy="29" r="4"/></svg>
+          <h3>Conectada</h3>
+          <p>Aproxima pessoas com interesses em comum, onde quer que elas estejam.</p>
+        </div>
+        <div class="trait">
+          <svg viewBox="0 0 44 44" aria-hidden="true"><path d="M22 38 V24 M22 24 L11 11 M22 24 L33 11"/><circle cx="11" cy="11" r="3.2" fill="var(--bg)"/><circle class="acc" cx="33" cy="11" r="3.4"/></svg>
+          <h3>Inteligente</h3>
+          <p>Transforma a organização coletiva em vantagem para todos os participantes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band sec" aria-labelledby="t-ideia">
+    <svg class="contours" id="band-contours" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+    <div class="wrap">
+      <span class="eyebrow" id="t-ideia">Ideia central</span>
+      <blockquote>Algumas oportunidades ficam melhores quando são construídas em conjunto.</blockquote>
+      <p>Comprar não precisa ser uma experiência individual. Podemos compartilhar interesses, reunir pessoas e trilhar caminhos mais vantajosos.</p>
+    </div>
+  </section>
+
+  <section class="sec" id="entrar" aria-labelledby="t-entrar">
+    <div class="wrap cta-grid">
+      <div class="sec-head">
+        <span class="eyebrow">Primeira trilha</span>
+        <h2 id="t-entrar">Venha andar com a gente</h2>
+        <p>Deixe seu e-mail e diga o que você gostaria de comprar em grupo. Esta é a tela de cadastro do protótipo.</p>
+      </div>
+      <form class="form" id="form" novalidate>
+        <div class="field">
+          <label for="email">Seu e-mail</label>
+          <input id="email" type="email" autocomplete="email" placeholder="nome@exemplo.com" aria-describedby="msg">
+        </div>
+        <div class="field">
+          <label for="interesse">O que você quer comprar junto?</label>
+          <select id="interesse">
+            <option>Casa</option>
+            <option>Tecnologia</option>
+            <option>Mercado</option>
+            <option>Lazer</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" type="submit">Quero participar</button>
+        <p class="msg" id="msg" role="status" aria-live="polite"></p>
+        <p class="fine">Protótipo: este formulário não envia nem guarda dados.</p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a class="brand" href="#topo" aria-label="Voltar ao topo">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" class="logo-bg"/><path d="M7 23 L13 15 L18 19 L24 9" class="logo-path"/><circle cx="24" cy="9" r="3.2" class="logo-dot"/></svg>
+      <span class="wordmark">Compra<b>Trilhe</b></span>
+    </a>
+    <p>Protótipo de marca. Produtos, preços e grupos são exemplos. Comprar junto é trilhar junto.</p>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  document.documentElement.lang = 'pt-BR';
+  var $ = function(s, r){ return (r || document).querySelector(s); };
+  var NS = 'http://www.w3.org/2000/svg';
+  var brl = new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'});
+
+  function svgEl(tag, attrs){
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  /* ---------- curvas de nível ---------- */
+  function drawContours(svg, hills){
+    hills.forEach(function(h){
+      for (var i = 1; i <= h.rings; i++){
+        var r = h.r0 + i * h.step, pts = [];
+        for (var a = 0; a <= 120; a++){
+          var t = a / 120 * Math.PI * 2;
+          var w = 1 + .10 * Math.sin(2*t + h.s + i*.12) + .06 * Math.sin(3*t + h.s*1.7) + .035 * Math.sin(5*t - h.s - i*.09);
+          pts.push((h.cx + Math.cos(t) * r * w * h.sx).toFixed(1) + ',' + (h.cy + Math.sin(t) * r * w * h.sy).toFixed(1));
+        }
+        svg.appendChild(svgEl('path', {d:'M' + pts.join('L') + 'Z', 'class': i % 5 === 0 ? 'ct ct-major' : 'ct'}));
+      }
+    });
+  }
+  drawContours($('#hero-contours'), [
+    {cx:930, cy:300, rings:16, r0:20, step:24, s:1.1, sx:1.2, sy:.8},
+    {cx:170, cy:570, rings:12, r0:20, step:26, s:3.4, sx:1.2, sy:.8}
+  ]);
+  drawContours($('#band-contours'), [
+    {cx:980, cy:300, rings:18, r0:20, step:26, s:2.2, sx:1.3, sy:.8},
+    {cx:140, cy:90, rings:9, r0:20, step:26, s:.6, sx:1.2, sy:.8}
+  ]);
+
+  /* ---------- simulador de trilha ---------- */
+  var SOLO = 449, MAXN = 50, MAXD = 30;
+  var TIERS = [{n:10, d:8}, {n:20, d:15}, {n:35, d:22}, {n:50, d:28}];
+  var PROFILE = [[0,0],[9,0],[10,8],[19,8],[20,15],[34,15],[35,22],[49,22],[50,28]];
+  var TICKS = [0, 10, 20, 35, 50];
+  var disc = function(n){ return TIERS.reduce(function(d, t){ return n >= t.n ? t.d : d; }, 0); };
+
+  var n = 18, W = 0, H = 250;
+  var M = {l:42, r:16, t:30, b:44};
+  var range = $('#pessoas'), out = $('#pessoas-out'), chart = $('#chart');
+  var X, Y, dotG, cursor, clipRect, markEls = [];
+
+  function build(){
+    W = Math.max(260, Math.floor(chart.clientWidth) || 320);
+    X = function(v){ return M.l + v / MAXN * (W - M.l - M.r); };
+    Y = function(v){ return H - M.b - v / MAXD * (H - M.t - M.b); };
+    var svg = svgEl('svg', {viewBox:'0 0 ' + W + ' ' + H, role:'img', 'aria-label':'Perfil da trilha: o desconto sobe em patamares conforme o grupo cresce.'});
+    var defs = svgEl('defs', {});
+    var cp = svgEl('clipPath', {id:'clip-walked'});
+    clipRect = svgEl('rect', {x:M.l, y:0, width:1, height:H});
+    cp.appendChild(clipRect); defs.appendChild(cp); svg.appendChild(defs);
+
+    [0, 10, 20, 30].forEach(function(v){
+      svg.appendChild(svgEl('line', {x1:M.l, x2:W - M.r, y1:Y(v), y2:Y(v), 'class':'g-line'}));
+      var t = svgEl('text', {x:M.l - 8, y:Y(v) + 4, 'text-anchor':'end', 'class':'t-axis'});
+      t.textContent = v + '%'; svg.appendChild(t);
+    });
+    TICKS.forEach(function(v){
+      svg.appendChild(svgEl('line', {x1:X(v), x2:X(v), y1:Y(0), y2:Y(0) + 5, 'class':'g-tick'}));
+      var t = svgEl('text', {x:X(v), y:Y(0) + 19, 'text-anchor':'middle', 'class':'t-axis'});
+      t.textContent = v === 0 ? '0' : String(v); svg.appendChild(t);
+    });
+    var cap = svgEl('text', {x:W - M.r, y:H - 4, 'text-anchor':'end', 'class':'t-axis'});
+    cap.textContent = 'pessoas na trilha'; svg.appendChild(cap);
+
+    var pts = PROFILE.map(function(p){ return X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1); });
+    var line = 'M' + pts.join('L');
+    svg.appendChild(svgEl('path', {d:line + 'L' + X(MAXN).toFixed(1) + ',' + Y(0) + 'L' + X(0).toFixed(1) + ',' + Y(0) + 'Z', 'class':'p-area', 'clip-path':'url(#clip-walked)'}));
+    svg.appendChild(svgEl('path', {d:line, 'class':'p-rest'}));
+    svg.appendChild(svgEl('path', {d:line, 'class':'p-done', 'clip-path':'url(#clip-walked)'}));
+
+    markEls = [];
+    TIERS.forEach(function(t, i){
+      var last = i === TIERS.length - 1;
+      var m = svgEl('rect', {x:X(t.n) - 5, y:Y(t.d) - 5, width:10, height:10, rx:2, 'class':'mark'});
+      svg.appendChild(m); markEls.push(m);
+      var lb = svgEl('text', {x:X(t.n) + (last ? -9 : 9), y:Y(t.d) - 9, 'text-anchor': last ? 'end' : 'start', 'class':'t-lbl'});
+      lb.textContent = t.d + '%'; svg.appendChild(lb);
+    });
+
+    cursor = svgEl('line', {y2:Y(0), 'class':'cursor'});
+    svg.appendChild(cursor);
+    dotG = svgEl('g', {});
+    dotG.appendChild(svgEl('circle', {r:12, 'class':'dot-halo'}));
+    dotG.appendChild(svgEl('circle', {r:6.5, 'class':'dot-core'}));
+    svg.appendChild(dotG);
+
+    chart.replaceChildren(svg);
+    update();
+  }
+
+  function update(){
+    var d = disc(n), price = SOLO * (1 - d / 100), save = SOLO - price;
+    out.textContent = n + (n === 1 ? ' pessoa' : ' pessoas');
+    $('#r-price').textContent = brl.format(price);
+    $('#r-save').textContent = brl.format(save);
+    $('#r-group').textContent = brl.format(save * n);
+    var nxt = TIERS.filter(function(t){ return n < t.n; })[0];
+    var el = $('#next');
+    el.textContent = '';
+    if (nxt){
+      var miss = nxt.n - n;
+      el.append('Faltam ');
+      var s1 = document.createElement('strong'); s1.textContent = miss + (miss === 1 ? ' pessoa' : ' pessoas'); el.append(s1);
+      el.append(' para o marco de ');
+      var s2 = document.createElement('strong'); s2.textContent = nxt.d + '%'; el.append(s2);
+      el.append('.');
+    } else {
+      var s3 = document.createElement('strong'); s3.textContent = 'Topo da trilha.'; el.append(s3);
+      el.append(' Desconto máximo de ' + d + '% alcançado.');
+    }
+    if (!dotG) return;
+    var x = X(n), y = Y(d);
+    dotG.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ')');
+    cursor.setAttribute('x1', x); cursor.setAttribute('x2', x); cursor.setAttribute('y1', y);
+    clipRect.setAttribute('width', Math.max(1, x - M.l));
+    markEls.forEach(function(m, i){ m.classList.toggle('reached', n >= TIERS[i].n); });
+  }
+
+  range.addEventListener('input', function(){ n = +range.value; update(); });
+  build();
+  if (window.ResizeObserver){
+    new ResizeObserver(function(){
+      var w = Math.floor(chart.clientWidth);
+      if (w && Math.abs(w - W) > 1) build();
+    }).observe(chart);
+  }
+
+  /* ---------- trilhas abertas ---------- */
+  var trilhas = [
+    {nome:'Air fryer 5 L', cat:'Casa', solo:449, grupo:349, atual:18, meta:30, dias:3},
+    {nome:'Fone Bluetooth com cancelamento de ruído', cat:'Tecnologia', solo:329, grupo:259, atual:41, meta:50, dias:1},
+    {nome:'Cesta de orgânicos do mês', cat:'Mercado', solo:119, grupo:89, atual:12, meta:20, dias:6},
+    {nome:'Mochila de trilha 40 L', cat:'Lazer', solo:389, grupo:299, atual:7, meta:25, dias:9},
+    {nome:'Kit de ferramentas 120 peças', cat:'Casa', solo:219, grupo:169, atual:26, meta:40, dias:5},
+    {nome:'Barraca para 3 pessoas', cat:'Lazer', solo:459, grupo:349, atual:9, meta:20, dias:8}
+  ];
+  var joined = {};
+  var grid = $('#tgrid'), filters = $('#filters'), cur = 'Todas';
+  var toastEl = $('#toast'), toastT;
+
+  function toast(msg){
+    toastEl.textContent = msg; toastEl.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(function(){ toastEl.classList.remove('show'); }, 2400);
+  }
+
+  function renderCards(){
+    grid.textContent = '';
+    trilhas.forEach(function(t, i){
+      var count = t.atual + (joined[i] ? 1 : 0);
+      var pct = Math.min(100, Math.round(count / t.meta * 100));
+      var off = Math.round((1 - t.grupo / t.solo) * 100);
+      var card = document.createElement('article');
+      card.className = 'tcard';
+      card.hidden = !(cur === 'Todas' || cur === t.cat);
+      var faltam = Math.max(0, t.meta - count);
+      var dias = t.dias === 1 ? 'Último dia' : t.dias + ' dias';
+      card.innerHTML =
+        '<div class="tc-top"><span class="tag"></span><span class="days' + (t.dias === 1 ? ' urgent' : '') + '">' + dias + '</span></div>' +
+        '<h3></h3>' +
+        '<div class="price"><strong>' + brl.format(t.grupo) + '</strong><s>' + brl.format(t.solo) + '</s><span class="off">−' + off + '%</span></div>' +
+        '<div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="' + t.meta + '" aria-valuenow="' + count + '"><i style="width:' + pct + '%"></i></div>' +
+        '<p class="meter-label"><span>' + count + ' de ' + t.meta + ' pessoas</span><span>' + (faltam ? 'faltam ' + faltam : 'meta atingida') + '</span></p>' +
+        '<button type="button" class="btn btn-primary" aria-pressed="' + (joined[i] ? 'true' : 'false') + '">' + (joined[i] ? 'Você está na trilha ✓' : 'Entrar na trilha') + '</button>';
+      card.querySelector('.tag').textContent = t.cat;
+      card.querySelector('h3').textContent = t.nome;
+      card.querySelector('.meter').setAttribute('aria-label', 'Progresso da trilha ' + t.nome);
+      var btn = card.querySelector('button');
+      if (joined[i]) btn.title = 'Clique para sair da trilha';
+      btn.addEventListener('click', function(){
+        joined[i] = !joined[i];
+        toast(joined[i] ? 'Você entrou na trilha: ' + t.nome + '.' : 'Você saiu da trilha: ' + t.nome + '.');
+        renderCards();
+        var again = grid.children[i] && grid.children[i].querySelector('button');
+        if (again) again.focus();
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  function renderFilters(){
+    var cats = ['Todas'];
+    trilhas.forEach(function(t){ if (cats.indexOf(t.cat) < 0) cats.push(t.cat); });
+    cats.forEach(function(c){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'fbtn'; b.textContent = c;
+      b.setAttribute('aria-pressed', c === cur ? 'true' : 'false');
+      b.addEventListener('click', function(){
+        cur = c;
+        Array.prototype.forEach.call(filters.children, function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+        Array.prototype.forEach.call(grid.children, function(card, i){ card.hidden = !(cur === 'Todas' || cur === trilhas[i].cat); });
+      });
+      filters.appendChild(b);
+    });
+  }
+  renderFilters(); renderCards();
+
+  /* ---------- slogans ---------- */
+  var slogans = [
+    {t:'Juntos, a gente trilha melhores compras.', u:'Slogan principal'},
+    {t:'Comprar junto é trilhar junto.', u:'Assinatura curta'},
+    {t:'Compartilhe caminhos, multiplique oportunidades.', u:'Alternativa'},
+    {t:'Um caminho melhor para comprar.', u:'Alternativa'},
+    {t:'Seu consumo, nosso caminho.', u:'Alternativa'},
+    {t:'Mais que comprar, compartilhar.', u:'Alternativa'}
+  ];
+  var slist = $('#slist');
+  slogans.forEach(function(s, i){
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'slg';
+    b.setAttribute('aria-pressed', i === 0 ? 'true' : 'false');
+    var a = document.createElement('span'); a.className = 'txt'; a.textContent = s.t;
+    var u = document.createElement('span'); u.className = 'use'; u.textContent = s.u;
+    b.append(a, u);
+    b.addEventListener('click', function(){
+      Array.prototype.forEach.call(slist.children, function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      $('#slogan-view').textContent = s.t;
+      $('#slogan-use').textContent = s.u === 'Alternativa' ? 'Opção ' + (i + 1) : s.u;
+    });
+    slist.appendChild(b);
+  });
+
+  /* ---------- formulário ---------- */
+  var form = $('#form'), email = $('#email'), msg = $('#msg');
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = email.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){
+      email.setAttribute('aria-invalid', 'true');
+      msg.className = 'msg err';
+      msg.textContent = 'Digite um e-mail válido, como nome@exemplo.com.';
+      email.focus();
+      return;
+    }
+    email.removeAttribute('aria-invalid');
+    msg.className = 'msg ok';
+    msg.textContent = 'Tudo certo! Avisaremos ' + v + ' quando abrir uma trilha de ' + $('#interesse').value.toLowerCase() + '.';
+  });
+  email.addEventListener('input', function(){ email.removeAttribute('aria-invalid'); });
+})();
+</script>
+
+</body></html>
